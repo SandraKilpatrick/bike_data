@@ -1,0 +1,116 @@
+---
+title: "Chattanooga Bike Data"
+author: "Sandra and Kate"
+date: "September 22, 2015"
+output: html_document
+---
+
+There is available data on https://data.chattlibrary.org/    
+We went to bike data section and downloaded the .csv file.   
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE}
+setwd("C:/Users/Marc/Desktop/datascience_chat/github/bikeData/")
+options(stringsAsFactors = FALSE)
+library(dplyr)
+```
+
+## Sandra wants to fix this
+
+```{r}
+#library(httr)
+#base_url <- "https://data.chattlibrary.org/Transportation/Bike-Chattanooga-Trip-Data/8yba-nwv8?"
+#df_text <- GET(base_url)
+#temp <- read.table(base_url, header = TRUE, sep = "")
+
+```
+
+## Get bike data
+Structure of the data after reading the .csv file and adapting some columns: 
+
+```{r, echo = FALSE}
+options(width = 120)
+df_raw <- read.csv("data/Bike_Chattanooga_Trip_Data.csv")
+
+# Change the class of some columns and add some new ones
+df_raw$StartDate <- as.Date(df_raw$StartDate, "%m/%d/%Y")
+df_raw$EndDate <- as.Date(df_raw$EndDate, "%m/%d/%Y")
+df_raw$StartDateTime <- as.POSIXct(strptime(df_raw$StartDateTime, "%m/%d/%Y %I:%M:%S %p"))
+df_raw$EndDateTime <- as.POSIXct(strptime(df_raw$EndDateTime, "%m/%d/%Y %I:%M:%S %p"))
+df_raw$MemberType <- as.factor(df_raw$MemberType)
+df_raw$StartDay <- as.factor(df_raw$StartDay)
+df_raw$EndDay <- as.factor(df_raw$EndDay)
+df_raw$tripDurationHours <- round(df_raw$TripDurationSec / (60 *60), 2)
+# StartTime, EndTime are char type but probably not needed so they are left as is
+str(df_raw)
+```
+
+## Get lat-lon data for the stations
+
+This data frame was created by Sandra Kilpatrick where she used maps.google.com to find out the latitude and longitude for the addresses of bike stations.  
+Head of the data frame: 
+
+```{r, echo = FALSE}
+options(width = 120)
+lat_lon <- read.csv("data/stations_lat_lon.csv", sep = ";")
+head(lat_lon)
+```
+
+## Group bike data by the stations
+
+The data was grouped by the stations and ordered by the number of entries per station in a decreasing order. We can see that the last 5 stations have unusual names and unusal small number of entries. In addition their latest start dates and latest end dates seem to be not up to date.      
+
+```{r, echo = FALSE}
+options(width = 100) 
+#stations_ids <- distinct(select(df_raw, stationId = StartStationID, StartStationName))
+stations_df <- group_by(df_raw, stationId = StartStationID) %>%
+  summarize(StartStationName = unique(StartStationName), total_entries = n(),
+            maxStartDate = max(StartDate), maxEndDate = max(EndDate)) %>%
+  arrange(desc(total_entries))
+print.data.frame(stations_df)
+```
+
+## Merge the station data with the lat-long data
+
+Head of the data set:  
+
+```{r, echo = FALSE}
+stations_lat_lon <- merge(stations_df, lat_lon, by.x = c("StartStationName"), by.y = c("stationName"), all.x = TRUE)
+head(stations_lat_lon)
+```
+
+## Funny stations
+
+The following stations are removed from the original bike data set as they are clearly out of date and probably used for testing porposes.   
+
+```{r, echo = FALSE}
+data.frame(stationName = stations_lat_lon[is.na(stations_lat_lon$latlon), ]$StartStationName)
+funny_stations <- stations_lat_lon[is.na(stations_lat_lon$latlon), ]$stationId
+df <- subset(df_raw, !(StartStationID %in% funny_stations | EndStationID %in% funny_stations))
+
+```
+
+The original data frame had **`r format(nrow(df_raw), big.mark = ",", scientific = FALSE)`** rows. **`r nrow(df_raw) - nrow(df)`** entries were excluded as we assume they come from test stations.   
+
+## Add the lat-long column to the bike data
+
+```{r, echo = FALSE}
+df <- merge(df, lat_lon, by.x = c("StartStationName"), by.y = c("stationName"))
+names(df)[names(df) == "latlon"] <- "latlonStart"
+df <- merge(df, lat_lon, by.x = c("EndStationName"), by.y = c("stationName"))
+names(df)[names(df) == "latlon"] <- "latlonEnd"
+
+head(df)
+```
+
+## tripDurationHours
+
+```{r, echo = FALSE}
+install.packages("lubridate")
+require(lubridate)
+boxplot(df$tripDurationHours ~ as.factor(year(df$StartDate)), outline = FALSE, varwidth = TRUE)
+
+```
+
+
+
+
