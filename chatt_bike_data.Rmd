@@ -1,8 +1,12 @@
 ---
 title: "Chattanooga Bike Data"
-author: "Sandra and Kate"
+author: "Sandra Kilpatrick and Kate Ergle"
 date: "September 22, 2015"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    theme: default
 ---
 
 There is available data on https://data.chattlibrary.org/    
@@ -12,9 +16,13 @@ We went to bike data section and downloaded the .csv file.
 setwd("C:/Users/Marc/Desktop/datascience_chat/github/bikeData/")
 options(stringsAsFactors = FALSE)
 library(dplyr)
+require(lubridate) # for the year() function
+require(ggplot2)
+require("seqinr") # for the col2alpha()
+require(gridExtra) # for the grid.arrange()
 ```
 
-## Sandra wants to fix this
+# Sandra wants to fix this
 
 ```{r}
 #library(httr)
@@ -24,30 +32,34 @@ library(dplyr)
 
 ```
 
-## Get bike data
-Structure of the data after reading the .csv file and adapting some columns: 
+# Get bike data
+
+**Structure** of the data after reading the .csv file and adapting some columns: 
 
 ```{r, echo = FALSE}
 options(width = 120)
 df_raw <- read.csv("data/Bike_Chattanooga_Trip_Data.csv")
 
+bike_df <- df_raw
 # Change the class of some columns and add some new ones
-df_raw$StartDate <- as.Date(df_raw$StartDate, "%m/%d/%Y")
-df_raw$EndDate <- as.Date(df_raw$EndDate, "%m/%d/%Y")
-df_raw$StartDateTime <- as.POSIXct(strptime(df_raw$StartDateTime, "%m/%d/%Y %I:%M:%S %p"))
-df_raw$EndDateTime <- as.POSIXct(strptime(df_raw$EndDateTime, "%m/%d/%Y %I:%M:%S %p"))
-df_raw$MemberType <- as.factor(df_raw$MemberType)
-df_raw$StartDay <- as.factor(df_raw$StartDay)
-df_raw$EndDay <- as.factor(df_raw$EndDay)
-df_raw$tripDurationHours <- round(df_raw$TripDurationSec / (60 *60), 2)
+bike_df$StartDate <- as.Date(bike_df$StartDate, "%m/%d/%Y")
+bike_df$EndDate <- as.Date(bike_df$EndDate, "%m/%d/%Y")
+bike_df$StartDateTime <- as.POSIXct(strptime(bike_df$StartDateTime, "%m/%d/%Y %I:%M:%S %p"))
+bike_df$EndDateTime <- as.POSIXct(strptime(bike_df$EndDateTime, "%m/%d/%Y %I:%M:%S %p"))
+bike_df$MemberType <- as.factor(bike_df$MemberType)
+bike_df$StartDay <- as.factor(bike_df$StartDay)
+bike_df$EndDay <- as.factor(bike_df$EndDay)
+bike_df$tripDurationHours <- round(bike_df$TripDurationSec / (60 *60), 2)
+bike_df$yearStart <- year(bike_df$StartDate)
+bike_df$monthStart <- month(bike_df$StartDate)
 # StartTime, EndTime are char type but probably not needed so they are left as is
-str(df_raw)
+str(bike_df)
 ```
 
-## Get lat-lon data for the stations
+# Get lat-lon data for the stations
 
 This data frame was created by Sandra Kilpatrick where she used maps.google.com to find out the latitude and longitude for the addresses of bike stations.  
-Head of the data frame: 
+**Head** of the data frame: 
 
 ```{r, echo = FALSE}
 options(width = 120)
@@ -55,43 +67,75 @@ lat_lon <- read.csv("data/stations_lat_lon.csv", sep = ";")
 head(lat_lon)
 ```
 
-## Group bike data by the stations
+# Group bike data by the stations
 
-The data was grouped by the stations and ordered by the number of entries per station in a decreasing order. We can see that the last 5 stations have unusual names and unusal small number of entries. In addition their latest start dates and latest end dates seem to be not up to date.      
+The data was grouped by the stations and ordered by the number of entries per station in a decreasing order. We can see that the **last 5 stations** have unusual names and unusal small number of entries. In addition their latest start dates and latest end dates seem to be not up to date.      
 
 ```{r, echo = FALSE}
 options(width = 100) 
-#stations_ids <- distinct(select(df_raw, stationId = StartStationID, StartStationName))
-stations_df <- group_by(df_raw, stationId = StartStationID) %>%
+#stations_ids <- distinct(select(bike_df, stationId = StartStationID, StartStationName))
+stations_df <- group_by(bike_df, stationId = StartStationID) %>%
   summarize(StartStationName = unique(StartStationName), total_entries = n(),
             maxStartDate = max(StartDate), maxEndDate = max(EndDate)) %>%
   arrange(desc(total_entries))
 print.data.frame(stations_df)
 ```
 
-## Merge the station data with the lat-long data
+# Clean the data
 
-Head of the data set:  
+## Remove stations with low entries
+
+The following stations are removed from the original bike data set as their total number of entries are so low that we assume that they were probably used for testing porposes.   
 
 ```{r, echo = FALSE}
+# add the lat_lon column to the stations_df data frame
 stations_lat_lon <- merge(stations_df, lat_lon, by.x = c("StartStationName"), by.y = c("stationName"), all.x = TRUE)
-head(stations_lat_lon)
-```
-
-## Funny stations
-
-The following stations are removed from the original bike data set as they are clearly out of date and probably used for testing porposes.   
-
-```{r, echo = FALSE}
+# get those stations that dont have an entry in the lat_lon data frame
 data.frame(stationName = stations_lat_lon[is.na(stations_lat_lon$latlon), ]$StartStationName)
 funny_stations <- stations_lat_lon[is.na(stations_lat_lon$latlon), ]$stationId
-df <- subset(df_raw, !(StartStationID %in% funny_stations | EndStationID %in% funny_stations))
-
+# exclulde those funny stations with just a few entries
+df <- subset(bike_df, !(StartStationID %in% funny_stations | EndStationID %in% funny_stations))
+curr_rows <- nrow(df)
 ```
 
-The original data frame had **`r format(nrow(df_raw), big.mark = ",", scientific = FALSE)`** rows. **`r nrow(df_raw) - nrow(df)`** entries were excluded as we assume they come from test stations.   
+The original data frame had **`r format(nrow(df_raw), big.mark = ",", scientific = FALSE)`** rows. **`r nrow(df_raw) - curr_rows`** entries were excluded as we assume they come from test stations.
 
-## Add the lat-long column to the bike data
+## Remove data prior to 2013
+
+Number of entries for the **starting** dates per year:    
+
+```{r, echo = FALSE}
+table(df$yearStart)
+```
+
+Number of entries for the **ending** dates per year:    
+
+```{r, echo = FALSE}
+table(year(df$EndDate))
+# clean data
+df <- subset(df, StartDate >= as.Date("2012-07-23"))
+df <- subset(df, EndDate >= as.Date("2012-07-23"))
+```
+
+According to http://www.bikechattanooga.com/blog/2015/07/24/bike-chattanooga-celebrates-third-birthday-with-free-memberships-to-chattanooga-residents the bikes started to run on July 23, 2012, the data prior to that was excluded.   
+Through this cleaning **`r format(curr_rows - nrow(df), big.mark = ",", scientific = FALSE)`** were removed which is **`r round((curr_rows - nrow(df))/nrow(df_raw), 3)*100`%** of the original data set.   
+
+## Remove entries with duration time over 24 hours
+
+On http://www.bikechattanooga.com/faq#_How_long_can we can read:   
+"The first 60 minutes of use with a bike is always included in your access pass and longer rides incur usage charges. Bikes must be returned to a Bike Chattanooga station within 24 hours of the start of the rental. If the bike has not been returned and correctly docked at a station after 24 hours, the bike is considered stolen."   
+
+So the bikes are not meant be rented longer than for 24 hours. If the duration time is longer than 24 hours then the bike was stolen or it was a test case or it was a mistake. As we have no knowledge about the reasons why the bike was taken for longer than 24 hours we exclude those **`r nrow(subset(df, tripDurationHours > 24)) `** entries which is **`r round(nrow(subset(df, tripDurationHours > 24))/nrow(df_raw), 3)*100`%** of the original data set.        
+
+```{r, echo = FALSE, fig.width=5, fig.height=3}
+df <- subset(df, tripDurationHours <= 24)
+```
+
+The new data frame has **`r format(nrow(df), big.mark = ",", scientific = FALSE) `** rows.    
+
+# Add the lat-long column to the bike data
+
+**Head** of the data frame:   
 
 ```{r, echo = FALSE}
 df <- merge(df, lat_lon, by.x = c("StartStationName"), by.y = c("stationName"))
@@ -102,14 +146,89 @@ names(df)[names(df) == "latlon"] <- "latlonEnd"
 head(df)
 ```
 
-## tripDurationHours
+# Trip duration
+
+## Entries per year
 
 ```{r, echo = FALSE}
-install.packages("lubridate")
-require(lubridate)
-boxplot(df$tripDurationHours ~ as.factor(year(df$StartDate)), outline = FALSE, varwidth = TRUE)
-
+table(df$yearStart)
 ```
+
+## Boxplots per year
+
+```{r, echo = FALSE, fig.width=10, fig.height=3, warning=FALSE}
+g1 <- ggplot(df, aes(factor(yearStart), tripDurationHours)) + 
+  stat_boxplot(geom ='errorbar') +
+  geom_boxplot(outlier.colour = col2alpha("black",0.15)) +
+  xlab("Years") +
+  ylab("Hours") +
+  ggtitle("Trip durations in hours per year")
+
+ylim1 = boxplot.stats(df$tripDurationHours)$stats[c(1, 5)]
+
+g2 <- ggplot(df, aes(factor(yearStart), tripDurationHours)) +
+  stat_boxplot(geom ='errorbar') +
+  geom_boxplot(outlier.size=NA, varwidth=T) +
+  coord_cartesian(ylim = ylim1 * 1.05) +
+  xlab("Years") +
+  ylab("Hours") +
+  ggtitle("Trip durations in hours per year without outliers") 
+
+##Warning: Removed 2057 rows containing missing values (geom_point).
+## Warning: Removed 1884 rows containing missing values (geom_point).
+## Warning: Removed 693 rows containing missing values (geom_point).
+
+grid.arrange(g1, g2, ncol=2)
+```
+
+## Summary per year
+
+```{r, echo = FALSE, fig.width=4, fig.height=2}
+tapply(df$tripDurationHours, df$yearStart, summary)
+```
+
+## Entries per member type
+
+```{r, echo = FALSE}
+table(df$MemberType)
+```
+
+## Boxplots per member type  
+
+```{r, echo = FALSE, fig.width=10, fig.height=3, warning=FALSE}
+
+g1 <- ggplot(df, aes(factor(MemberType), tripDurationHours)) + 
+  stat_boxplot(geom ='errorbar') +
+  geom_boxplot(outlier.colour = col2alpha("black",0.15)) +
+  xlab("Member type") +
+  ylab("Hours") +
+  ggtitle("Trip durations in hours per member type")
+
+ylim1 = boxplot.stats(df$tripDurationHours)$stats[c(1, 5)]
+
+g2 <- ggplot(df, aes(factor(MemberType), tripDurationHours)) +
+  stat_boxplot(geom ='errorbar') +
+  geom_boxplot(outlier.size=NA, varwidth=T) +
+  coord_cartesian(ylim = ylim1 * 1.05) +
+  xlab("Member type") +
+  ylab("Hours") +
+  ggtitle("Trip durations in hours per member type without outliers")
+
+##Warning: Removed 2057 rows containing missing values (geom_point).
+## Warning: Removed 1884 rows containing missing values (geom_point).
+## Warning: Removed 693 rows containing missing values (geom_point).
+
+grid.arrange(g1, g2, ncol=2)
+```
+
+# Ideas
+
+1. The top stations
+2. Map
+3. Per month and per year the usage of the bikes
+4. Check if the shooting had an influence on this
+5. Customers vs Subscribers (Trip duration)
+
 
 
 
