@@ -15,7 +15,7 @@ options(stringsAsFactors = FALSE)
 library(dplyr)
 ```
 
-## Sandra wants to fix this
+#Get bike data file from internet
 
 ```{r}
 library(readr) #read .csv file
