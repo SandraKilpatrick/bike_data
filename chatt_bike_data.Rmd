@@ -29,6 +29,8 @@ require(gridExtra) # for the grid.arrange()
 # Sandra wants to fix this
 >>>>>>> 46ee06f3cf7272e814c1942bd48ec1d6ff53e501
 
+testing...
+
 ```{r}
 library(readr) #read .csv file
 library(downloader) #simplify downloading of file from URL
