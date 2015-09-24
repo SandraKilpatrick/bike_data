@@ -9,7 +9,8 @@ There is available data on https://data.chattlibrary.org/
 We went to bike data section and downloaded the .csv file.   
 
 ```{r, echo = FALSE, warning=FALSE, message=FALSE}
-setwd("C:/Users/Marc/Desktop/datascience_chat/github/bikeData/")
+rm(list=ls())
+setwd("/Users/sandrakilpatrick/bike_data")
 options(stringsAsFactors = FALSE)
 library(dplyr)
 ```
@@ -17,19 +18,28 @@ library(dplyr)
 ## Sandra wants to fix this
 
 ```{r}
-#library(httr)
-#base_url <- "https://data.chattlibrary.org/Transportation/Bike-Chattanooga-Trip-Data/8yba-nwv8?"
-#df_text <- GET(base_url)
-#temp <- read.table(base_url, header = TRUE, sep = "")
+library(readr) #read .csv file
+library(downloader) #simplify downloading of file from URL
+
+if(!file.exists("data")) {
+  dir.create("data")
+}
+
+fileUrl <- "https://data.chattlibrary.org/api/views/8yba-nwv8/rows.csv?accessType=DOWNLOAD"
+download(fileUrl,destfile="~/bike_data/bike_data.csv",mode="wb")
+
+dateDownloaded <- date()
+dateDownloaded
+
+df_raw<-read_csv("~/bike_data/bike_data.csv")
 
 ```
-
 ## Get bike data
 Structure of the data after reading the .csv file and adapting some columns: 
 
 ```{r, echo = FALSE}
 options(width = 120)
-df_raw <- read.csv("data/Bike_Chattanooga_Trip_Data.csv")
+#df_raw <- read.csv("data/Bike_Chattanooga_Trip_Data.csv")
 
 # Change the class of some columns and add some new ones
 df_raw$StartDate <- as.Date(df_raw$StartDate, "%m/%d/%Y")
