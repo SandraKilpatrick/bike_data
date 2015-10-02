@@ -69,8 +69,10 @@ img {
 
 <div id="TOC">
 <ul>
-<li><a href="#sandra-wants-to-fix-this"><span class="toc-section-number">1</span> Sandra wants to fix this</a></li>
-<li><a href="#get-bike-data"><span class="toc-section-number">2</span> Get bike data</a></li>
+<li><a href="#get-bike-data-file-from-internet"><span class="toc-section-number">1</span> Get bike data file from internet</a><ul>
+<li><a href="#get-bike-data"><span class="toc-section-number">1.1</span> Get bike data</a></li>
+</ul></li>
+<li><a href="#get-bike-data-1"><span class="toc-section-number">2</span> Get bike data</a></li>
 <li><a href="#get-lat-lon-data-for-the-stations"><span class="toc-section-number">3</span> Get lat-lon data for the stations</a></li>
 <li><a href="#group-bike-data-by-the-stations"><span class="toc-section-number">4</span> Group bike data by the stations</a></li>
 <li><a href="#clean-the-data"><span class="toc-section-number">5</span> Clean the data</a><ul>
@@ -90,15 +92,15 @@ img {
 </ul>
 </div>
 
-<p>There is available data on <a href="https://data.chattlibrary.org/" class="uri">https://data.chattlibrary.org/</a><br />We went to bike data section and downloaded the .csv file.</p>
-<div id="sandra-wants-to-fix-this" class="section level1">
-<h1><span class="header-section-number">1</span> Sandra wants to fix this</h1>
-<pre class="r"><code>#library(httr)
-#base_url &lt;- &quot;https://data.chattlibrary.org/Transportation/Bike-Chattanooga-Trip-Data/8yba-nwv8?&quot;
-#df_text &lt;- GET(base_url)
-#temp &lt;- read.table(base_url, header = TRUE, sep = &quot;&quot;)</code></pre>
+<p>There is available data on <a href="https://data.chattlibrary.org/" class="uri">https://data.chattlibrary.org/</a><br />We went to bike data section and through right click on the link which leads on downloading the .csv file, we copied the link to use it for downloading the data through R.</p>
+<div id="get-bike-data-file-from-internet" class="section level1">
+<h1><span class="header-section-number">1</span> Get bike data file from internet</h1>
+<div id="get-bike-data" class="section level2">
+<h2><span class="header-section-number">1.1</span> Get bike data</h2>
+<p>Data was dowloaded Fri Oct 02 12:48:55 2015.<br />Structure of the data after reading the .csv file and adapting some columns:</p>
 </div>
-<div id="get-bike-data" class="section level1">
+</div>
+<div id="get-bike-data-1" class="section level1">
 <h1><span class="header-section-number">2</span> Get bike data</h1>
 <p><strong>Structure</strong> of the data after reading the .csv file and adapting some columns:</p>
 <pre><code>## 'data.frame':    126738 obs. of  19 variables:

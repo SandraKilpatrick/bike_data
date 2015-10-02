@@ -10,52 +10,63 @@ output:
 ---
 
 There is available data on https://data.chattlibrary.org/    
-We went to bike data section and downloaded the .csv file.   
+We went to bike data section and through right click on the link which leads on downloading the .csv file, we copied the link to use it for downloading the data through R.       
 
 ```{r, echo = FALSE, warning=FALSE, message=FALSE}
 rm(list=ls())
-setwd("/Users/sandrakilpatrick/bike_data")
+#setwd("/Users/sandrakilpatrick/bike_data")
+setwd("C:/Users/Marc/Desktop/datascience_chat/github/bikeData/")
 options(stringsAsFactors = FALSE)
 library(dplyr)
 require(lubridate) # for the year() function
 require(ggplot2)
 require("seqinr") # for the col2alpha()
 require(gridExtra) # for the grid.arrange()
+#library(readr) #read .csv file
+
+download_data_from_website <- FALSE # choose if you want to dowload the data today
+# NEED TO DO THIS MANUALLY AND 
+
 ```
 
-<<<<<<< HEAD
-#Get bike data file from internet
-=======
-# Sandra wants to fix this
->>>>>>> 46ee06f3cf7272e814c1942bd48ec1d6ff53e501
+# Get bike data file from internet
 
-testing...
-
-```{r}
-library(readr) #read .csv file
-library(downloader) #simplify downloading of file from URL
-
-if(!file.exists("data")) {
-  dir.create("data")
+```{r, echo = FALSE}
+# if we want to download the file from the website now then do it otherwise
+# just load the date when the csv was downloaded
+if (download_data_from_website){
+  # if there is not the folder 'data' in the directory then create one
+  if(!file.exists("data")) {
+    dir.create("data")
+  }
+  
+  fileUrl <- "https://data.chattlibrary.org/api/views/8yba-nwv8/rows.csv?accessType=DOWNLOAD"
+  download.file(url = fileUrl, destfile = "data/bike_data.csv")  
+  
+  # save the date when the data was dowloaded
+  dateDownloaded <- date()
+  save(dateDownloaded, file = "data/dateDownloaded.Rdata")
+  
+  # There is an extra package available
+  # library(downloader) #simplify downloading of file from URL
+  # download(fileUrl,destfile="data/bike_data.csv",mode="wb")
+} else{
+  load("data/dateDownloaded.Rdata")
 }
 
-fileUrl <- "https://data.chattlibrary.org/api/views/8yba-nwv8/rows.csv?accessType=DOWNLOAD"
-download(fileUrl,destfile="~/bike_data/bike_data.csv",mode="wb")
-
-dateDownloaded <- date()
-dateDownloaded
-
-<<<<<<< HEAD
-df_raw<-read_csv("~/bike_data/bike_data.csv")
+df_raw <- read.csv("data/bike_data.csv")
 
 ```
+
 ## Get bike data
+
+Data was dowloaded `r dateDownloaded`.   
 Structure of the data after reading the .csv file and adapting some columns: 
-=======
+
+
 # Get bike data
 
 **Structure** of the data after reading the .csv file and adapting some columns: 
->>>>>>> 46ee06f3cf7272e814c1942bd48ec1d6ff53e501
 
 ```{r, echo = FALSE}
 options(width = 120)
