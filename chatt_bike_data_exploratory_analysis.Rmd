@@ -1,0 +1,139 @@
+---
+title: "Chattanooga Bike Data Exploratory analysis"
+author: "Sandra Kilpatrick and Kate Ergle"
+date: "September 22, 2015"
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    theme: default
+---
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE}
+rm(list=ls())
+#setwd("/Users/sandrakilpatrick/bike_data")
+setwd("C:/Users/Marc/Desktop/datascience_chat/github/bikeData/")
+options(stringsAsFactors = FALSE)
+require(ggplot2)
+require("seqinr") # for the col2alpha()
+require(gridExtra) # for the grid.arrange()
+require(scales) # for date_breaks() function
+```
+
+
+```{r echo = FALSE}
+load("data/df.Rdata")
+```
+
+# Number of trips
+
+## Per year
+
+```{r, echo = FALSE}
+table(df$yearStart)
+```
+
+## Per month
+
+```{r, echo = FALSE, fig.width=9, fig.height=4}
+# define a new column with for the start Date with a format YY-MM-01
+df$StartMonthYear <- format(df$StartDate, "%Y-%m-%01")
+
+# Group the data frame by the newly created column 'StartMonthYear'
+StartMonthYearDf <- as.data.frame(table(df$StartMonthYear))
+names(StartMonthYearDf) <- c("StartMonth", "Total")
+# Need to have the date in a correct format so it would work when plotting
+StartMonthYearDf$StartMonth <- as.POSIXct(StartMonthYearDf$StartMonth)
+
+g <- ggplot(data = StartMonthYearDf, aes(x = StartMonth, y = Total)) +
+    geom_line() +
+    scale_x_datetime(labels = date_format("%Y-%m"), breaks = date_breaks("months")) +
+    theme(axis.text.x = element_text(angle = 45)) +
+    xlab("Month of the start date of the trip") +
+    ylab("Total number of trips") +
+    ggtitle("Number of trips per month")
+g
+```
+
+
+
+# Trip duration
+
+## Boxplots per year
+
+```{r, echo = FALSE, fig.width=10, fig.height=3, warning=FALSE}
+g1 <- ggplot(df, aes(factor(yearStart), tripDurationHours)) + 
+  stat_boxplot(geom ='errorbar') +
+  geom_boxplot(outlier.colour = col2alpha("black",0.15)) +
+  xlab("Years") +
+  ylab("Hours") +
+  ggtitle("Trip durations in hours per year")
+
+ylim1 = boxplot.stats(df$tripDurationHours)$stats[c(1, 5)]
+
+g2 <- ggplot(df, aes(factor(yearStart), tripDurationHours)) +
+  stat_boxplot(geom ='errorbar') +
+  geom_boxplot(outlier.size=NA, varwidth=T) +
+  coord_cartesian(ylim = ylim1 * 1.05) +
+  xlab("Years") +
+  ylab("Hours") +
+  ggtitle("Trip durations in hours per year without outliers") 
+
+##Warning: Removed 2057 rows containing missing values (geom_point).
+## Warning: Removed 1884 rows containing missing values (geom_point).
+## Warning: Removed 693 rows containing missing values (geom_point).
+
+grid.arrange(g1, g2, ncol=2)
+```
+
+## Summary per year
+
+```{r, echo = FALSE, fig.width=4, fig.height=2}
+tapply(df$tripDurationHours, df$yearStart, summary)
+```
+
+## Entries per member type
+
+```{r, echo = FALSE}
+table(df$MemberType)
+```
+
+**Customer** - a bike user who has bought one or three day pass.   
+**Subscriber** - a bike user who has an annual pass.   
+**Dependent** - No information.   
+
+## Boxplots per member type  
+
+```{r, echo = FALSE, fig.width=10, fig.height=3, warning=FALSE}
+
+g1 <- ggplot(df, aes(factor(MemberType), tripDurationHours)) + 
+  stat_boxplot(geom ='errorbar') +
+  geom_boxplot(outlier.colour = col2alpha("black",0.15)) +
+  xlab("Member type") +
+  ylab("Hours") +
+  ggtitle("Trip durations in hours per member type")
+
+ylim1 = boxplot.stats(df$tripDurationHours)$stats[c(1, 5)]
+
+g2 <- ggplot(df, aes(factor(MemberType), tripDurationHours)) +
+  stat_boxplot(geom ='errorbar') +
+  geom_boxplot(outlier.size=NA, varwidth=T) +
+  coord_cartesian(ylim = ylim1 * 1.05) +
+  xlab("Member type") +
+  ylab("Hours") +
+  ggtitle("Trip durations in hours per member type without outliers")
+
+##Warning: Removed 2057 rows containing missing values (geom_point).
+## Warning: Removed 1884 rows containing missing values (geom_point).
+## Warning: Removed 693 rows containing missing values (geom_point).
+
+grid.arrange(g1, g2, ncol=2)
+```
+
+# Ideas
+
+1. The top stations
+2. Map
+3. Per month and per year the usage of the bikes
+4. Check if the shooting had an influence on this
+5. Customers vs Subscribers (Trip duration)
